@@ -1,11 +1,11 @@
 import numpy as np
 from loadCIFAR import loadCIFAR
 class linearSVM():
-	def __init__(self, X, Y, W):
+	def __init__(self, X, Y, W, d=1.0):
 		self.Xtr = X
 		self.Ytr = Y
 		self.W = W
-		self.delta = 1.0
+		self.delta = d
 
 	# uses gradient descent to optimize loss function with regards to weight
 	def train():
@@ -16,13 +16,9 @@ class linearSVM():
 	def loss_i(self, X, Y):
 		scores = self.W.dot(X)
 		trueScore = scores[Y]
-		loss = 0
-		for i in range(0, self.W.shape[0]):
-			if i == Y:
-				continue
-			else:
-				loss += max(0, scores[i] - trueScore + self.delta)
-		return loss
+		losses = np.maximum(0, scores - scores[Y] + self.delta)
+		losses[Y] = 0
+		return np.sum(losses)
 
 	# returns highest score of classes in X image
 	def evaluate(self, X):

@@ -1,6 +1,5 @@
 import numpy as np
 from loadCIFAR import loadCIFAR
-import matplotlib.pyplot as plt
 class linearSVM():
 
 	# class is responsible for storing training data set & labels
@@ -146,9 +145,6 @@ def main():
 	print('Untrained loss: {}'.format(untrainedLoss))
 	print('Accuracy trained: {}%'.format(trainedCorrect/testData.shape[0] * 100))
 	print('Trained loss: {}\n'.format(trainedLoss))
-
-	plt.plot(np.arange(trainingEpochs), trainingLosses)
-	plt.show()
 
 if (__name__ == '__main__'):
 	main()

@@ -3,19 +3,19 @@ import torch.utils.data as data
 import torch.nn as nn
 import loadCIFAR
 import matplotlib.pyplot as plt
+import numpy as np
 
-losses = []
 class Net(nn.Module):
-    def __init__(self):
+    def __init__(self,lr, reg):
         super(Net,self).__init__()
 
         self.fc1 = nn.Linear(3072, 512)
         self.fc2 = nn.Linear(512, 128)
         self.fc3 = nn.Linear(128, 32)
         self.fc4 = nn.Linear(32, 10)
-        self.LearningRate = 1e-3
-        self.epochs = 32
-        self.reg = 0
+        self.LearningRate = lr
+        self.epochs = 16
+        self.reg = reg
 
     def forward(self, input):
         layer1 = nn.functional.relu(self.fc1(input))
@@ -25,7 +25,7 @@ class Net(nn.Module):
         return layer4
 
     def train(self, loader):
-        optimizer = torch.optim.SGD(self.parameters(), lr = self.LearningRate, weight_decay = self.reg)
+        optimizer = torch.optim.SGD(self.parameters(), lr = self.LearningRate, weight_decay = self.reg, momentum = .9)
         lossFunction = nn.CrossEntropyLoss()
         for i in range(0, self.epochs):
             for batch in loader:
@@ -33,14 +33,9 @@ class Net(nn.Module):
                 optimizer.zero_grad()
                 output = net(input)
                 loss = lossFunction(output, labels)
-                losses.append(loss)
-                #print(input)
-                #print(output)
-                #print(torch.argmax(output), labels)
-                print('Loss: ',float(loss), '\n')
                 loss.backward()
                 optimizer.step()
-            print('Epoch {} finished'.format(i))
+        return loss
 
 
 trainX, trainY, testX, testY = loadCIFAR.loadCIFAR()
@@ -52,20 +47,25 @@ testSet = data.TensorDataset(testX, testY)
 trainLoader = data.DataLoader(trainSet, batch_size=32, shuffle=True, num_workers=2)
 testLoader = data.DataLoader(testSet, batch_size=1, shuffle=False, num_workers=2)
 
-classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+learningRange = range(-10, -1)
+regRange = range(-10,-1)
+accuracies = np.zeros([len(learningRange),len(regRange)])
 
-net = Net()
-net.train(trainLoader)
-
-correct = 0
-with torch.no_grad():
-    for i in testLoader:
-        input, label = i
-        output = net(input)
-        if (torch.argmax(output) == label):
-            correct += 1
-
-print('\nHyperparameters: \n\tLearning rate:\t{}\n\tEpochs:\t\t{}\n\tRegularization:\t{}\n\tFinal Loss:\t{}'.format(net.LearningRate, net.epochs, net.reg,float(losses[-1])))
-print('Accuracy trained: {}/{}, {}%\n'.format(correct, testX.shape[0], 100*(correct/testX.shape[0])))
-plt.plot(losses)
-plt.show()
+for lr in learningRange:
+    for reg in regRange:
+        net = Net(10**(lr), 10**(reg))
+        currentLoss = net.train(trainLoader)
+        correct = 0
+        with torch.no_grad():
+            for i in testLoader:
+                input, label = i
+                output = net(input)
+                if (torch.argmax(output) == label):
+                    correct += 1
+        currentAccuracy = 100 * (correct / testX.shape[0])
+        accuracyIndex = (regRange.index(reg), learningRange.index(lr))
+        accuracies[accuracyIndex] = currentAccuracy
+        print('\nHyperparameters: \n\tLearning rate:\t{}\n\tRegularization:\t{}\n\tFinal Loss:\t{}'.format(net.LearningRate, net.reg, currentLoss))
+        print('Accuracy trained: {}/{}, {}%\n'.format(correct, testX.shape[0], currentAccuracy))
+        del net
+print(accuracies)

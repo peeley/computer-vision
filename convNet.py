@@ -1,4 +1,6 @@
-import numpy, torch, torchvision
+import numpy as np
+import matplotlib.pyplot as plt
+import torch, torchvision
 import torch.nn as nn
 import torchvision.transforms as transforms
 
@@ -8,12 +10,12 @@ class convNet(nn.Module):
         self.conv1 = nn.Conv2d(3, 6, 5)
         self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(6, 12, 5)
-        self.fc1 = nn.Linear(12*5*5, 128)
-        self.fc2 = nn.Linear(128, 64)
-        self.fc3 = nn.Linear(64, 10)
+        self.fc1 = nn.Linear(12*5*5, 256)
+        self.fc2 = nn.Linear(256, 128)
+        self.fc3 = nn.Linear(128, 10)
         self.learningRate = .01
-        self.reg = 1e-7
-        self.epochs = 8
+        self.reg = 1e-6
+        self.epochs = 16
 
     def forward(self, input):
         x = nn.functional.relu(self.conv1(input))
@@ -29,17 +31,22 @@ class convNet(nn.Module):
     def train(self, loader):
         optimizer = torch.optim.SGD(self.parameters(), lr = self.learningRate, weight_decay = self.reg, momentum = .9)
         loss_fn = torch.nn.CrossEntropyLoss()
+        losses = np.zeros(len(loader) * self.epochs)
+        counter = 0
         for i in range(self.epochs):
             for batch in loader:
                 input, labels = batch
                 optimizer.zero_grad()
                 output = self.forward(input)
-                print(output.shape, labels.shape)
                 loss = loss_fn( output, labels)
-                print('Loss: ', loss, '\n')
+                print('Loss: ', loss)
+                losses[counter] = loss
+                counter += 1
                 loss.backward()
                 optimizer.step()
-            print('Epoch {} finished'.format(i))
+            print('\nEpoch {} finished \n'.format(i + 1))
+        plt.plot(losses)
+        plt.show()
 
 
 net = convNet()
